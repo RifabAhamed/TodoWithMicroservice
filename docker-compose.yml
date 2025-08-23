@@ -1,0 +1,49 @@
+version: "3.8"
+services:
+  mongo:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  task-service:
+    build: ./task-service
+    ports:
+      - "4001:4001"
+    env_file:
+      - ./task-service/.env
+    depends_on:
+      - mongo
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "4002:4002"
+    env_file:
+      - ./user-service/.env
+    depends_on:
+      - mongo
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./api-gateway/.env
+    depends_on:
+      - task-service
+      - user-service
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      - api-gateway
+
+volumes:
+  mongo-data:
