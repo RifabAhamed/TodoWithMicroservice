@@ -65,7 +65,8 @@ app.post("/login", async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    res.json({ token });
+   const userData = { _id: user._id, email: user.email };
+   res.json({ user: userData, token });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
