@@ -10,7 +10,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await API.post("/users/login", form);
+      const res = await API.post("/login", form);
       login(res.data.user, res.data.token);
       setMsg("Login successful!");
     } catch (err) {

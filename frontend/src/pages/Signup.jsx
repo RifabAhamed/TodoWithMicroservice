@@ -8,7 +8,7 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await API.post("/users/signup", form);
+      await API.post("/signup", form);
       setMsg("Signup successful! Please login.");
     } catch (err) {
       setMsg("Error: " + err.response?.data?.message);
@@ -19,10 +19,6 @@ const Signup = () => {
     <div>
       <h2>Signup</h2>
       <form onSubmit={handleSubmit}>
-        <input
-          placeholder="Name"
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-        />
         <input
           placeholder="Email"
           onChange={(e) => setForm({ ...form, email: e.target.value })}
