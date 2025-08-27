@@ -1,49 +1,77 @@
-version: "3.8"
+version: "3.9"
+
 services:
-  mongo:
-    image: mongo
-    container_name: mongo
+  # ==================== DATABASES ====================
+  mongodb:
+    image: mongo:latest
+    container_name: mongo_db
+    restart: always
     ports:
       - "27017:27017"
     volumes:
-      - mongo-data:/data/db
+      - mongo_data:/data/db
+
+  postgres:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: tasksdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # ==================== BACKEND SERVICES ====================
+  user-service:
+    build: ./user-service
+    container_name: user_service
+    restart: always
+    env_file:
+      - ./user-service/.env
+    ports:
+      - "4002:4002"
+    depends_on:
+      - mongodb
 
   task-service:
     build: ./task-service
-    ports:
-      - "4001:4001"
+    container_name: task_service
+    restart: always
     env_file:
       - ./task-service/.env
-    depends_on:
-      - mongo
-
-  user-service:
-    build: ./user-service
     ports:
-      - "4002:4002"
-    env_file:
-      - ./user-service/.env
+      - "4001:4001"
     depends_on:
-      - mongo
+      - postgres
 
   api-gateway:
     build: ./api-gateway
-    ports:
-      - "4000:4000"
+    container_name: api_gateway
+    restart: always
     env_file:
       - ./api-gateway/.env
+    ports:
+      - "4000:4000"
     depends_on:
-      - task-service
       - user-service
+      - task-service
 
+  # ==================== FRONTEND ====================
   frontend:
     build: ./frontend
-    ports:
-      - "3000:3000"
+    container_name: frontend
+    restart: always
     env_file:
       - ./frontend/.env
+    ports:
+      - "3000:3000" # vite default
     depends_on:
       - api-gateway
 
+# ==================== VOLUMES ====================
 volumes:
-  mongo-data:
+  mongo_data:
+  postgres_data:

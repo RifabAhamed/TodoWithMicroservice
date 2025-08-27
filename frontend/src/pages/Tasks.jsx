@@ -31,8 +31,8 @@ const Tasks = () => {
       />
       <button onClick={addTask}>Add</button>
       <ul>
-        {tasks.map((t) => (
-          <li key={t._id}>{t.title}</li>
+        {tasks.map((t, index) => (
+          <li key={index}>{t.title}</li>
         ))}
       </ul>
     </div>

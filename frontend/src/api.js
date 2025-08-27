@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:4000", // gateway
+  baseURL: import.meta.env.VITE_API_GATEWAY, // gateway
 });
 
 // add token if available

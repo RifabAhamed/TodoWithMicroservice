@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
+import { Sequelize, DataTypes } from "sequelize";
 
 dotenv.config();
 
@@ -28,19 +29,49 @@ export function authMiddleware(req, res, next) {
 }
 
 // ===== MongoDB: Task Schema =====
-const taskSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  completed: { type: Boolean, default: false },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+// const taskSchema = new mongoose.Schema({
+//   title: { type: String, required: true },
+//   completed: { type: Boolean, default: false },
+//   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+// });
+// const Task = mongoose.model("Task", taskSchema);
+
+
+// ===== PostgreSQL: Sequelize Setup =====
+const sequelize = new Sequelize(
+  process.env.POSTGRES_DB,
+  process.env.POSTGRES_USER,
+  process.env.POSTGRES_PASSWORD,
+  {
+    host: process.env.POSTGRES_HOST || "localhost",
+    dialect: "postgres",
+  }
+);
+
+// ===== Task Model =====
+const Task = sequelize.define("Task", {
+  title: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  completed: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  userId: {
+    type: DataTypes.STRING, // we’ll store JWT user id as string
+    allowNull: false,
+  },
 });
-const Task = mongoose.model("Task", taskSchema);
+
+
 
 // ===== Routes (all protected) =====
 
 // Get all tasks for logged-in user
 app.get("/tasks", authMiddleware, async (req, res) => {
   try {
-    const tasks = await Task.find({ userId: req.user.id });
+    const tasks = await Task.findAll({ where: { userId: req.user.id } });
     res.json(tasks);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -60,12 +91,11 @@ app.post("/tasks", authMiddleware, async (req, res) => {
 // Update a task (only by owner)
 app.put("/tasks/:id", authMiddleware, async (req, res) => {
   try {
-    const task = await Task.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user.id },
-      req.body,
-      { new: true }
-    );
+    const task = await Task.findOne({
+      where: { id: req.params.id, userId: req.user.id },
+    });
     if (!task) return res.status(404).json({ message: "Task not found" });
+    await task.update(req.body);
     res.json(task);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -75,22 +105,25 @@ app.put("/tasks/:id", authMiddleware, async (req, res) => {
 // Delete a task (only by owner)
 app.delete("/tasks/:id", authMiddleware, async (req, res) => {
   try {
-    const task = await Task.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user.id,
+    const task = await Task.findOne({
+      where: { id: req.params.id, userId: req.user.id },
     });
     if (!task) return res.status(404).json({ message: "Task not found" });
+
+    await task.destroy();
     res.sendStatus(204);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ===== Connect to MongoDB & Start Server =====
-mongoose
-  .connect(process.env.MONGO_URL)
+// ===== Connect to PostgreSQL & Start Server =====
+sequelize
+  .sync() // creates table if not exists
   .then(() => {
-    console.log("Task DB connected");
-    app.listen(4001, () => console.log("Task Service running on port 4001"));
+    console.log("Postgres connected & models synced");
+    app.listen(process.env.PORT || 4001, () =>
+      console.log(`Task Service running on port ${process.env.PORT || 4001}`)
+    );
   })
   .catch((err) => console.log("DB Connection Error:", err));
