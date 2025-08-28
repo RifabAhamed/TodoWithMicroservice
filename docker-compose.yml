@@ -4,7 +4,6 @@ services:
   # ==================== DATABASES ====================
   mongodb:
     image: mongo:latest
-    # container_name: mongo_db
     restart: always
     ports:
       - "27017:27017"
@@ -13,7 +12,6 @@ services:
 
   postgres:
     image: postgres:15
-    # container_name: postgres_db
     restart: always
     environment:
       POSTGRES_USER: postgres
@@ -27,73 +25,71 @@ services:
   # ==================== BACKEND SERVICES ====================
   user-service:
     build: ./user-service
-    # container_name: user_service
     restart: always
     env_file:
       - ./user-service/.env
-    expose:
-      - "4002"
-    # ports:
-    #   - "4002:4002"
     depends_on:
       - mongodb
     volumes:
-          - ./user-service:/app
-          - /app/node_modules
-    deploy:
-      replicas: 2   # scale user-service
-      restart_policy:
-       condition: on-failure
+      - ./user-service:/app
+      - /app/node_modules
+    ports:
+      - "4002"
 
   task-service:
     build: ./task-service
-    # container_name: task_service
     restart: always
     env_file:
       - ./task-service/.env
-    expose:
-      - "4001"
-    # ports:
-    #   - "4001:4001"
     depends_on:
       - postgres
     volumes:
       - ./task-service:/app
       - /app/node_modules
-    deploy:
-      replicas: 3   # scale task-service
-      restart_policy:
-        condition: on-failure
+    ports:
+      - "4001"
 
   api-gateway:
     build: ./api-gateway
-    # container_name: api_gateway
     restart: always
     env_file:
       - ./api-gateway/.env
-    ports:
-      - "4000:4000"
     depends_on:
       - user-service
       - task-service
     volumes:
       - ./api-gateway:/app
       - /app/node_modules
+    ports:
+      - "4000:4000"
 
   # ==================== FRONTEND ====================
   frontend:
     build: ./frontend
-    # container_name: frontend
     restart: always
     env_file:
       - ./frontend/.env
-    ports:
-      - "3000:3000" # vite default
     depends_on:
       - api-gateway
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    ports:
+      - "3000:3000"
+
+  # ==================== NGINX LOAD BALANCER ====================
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api-gateway
+      - task-service
+      - user-service
+
 # ==================== VOLUMES ====================
 volumes:
   mongo_data:
