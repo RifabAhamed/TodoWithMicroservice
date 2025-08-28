@@ -43,7 +43,7 @@ const sequelize = new Sequelize(
   process.env.POSTGRES_USER,
   process.env.POSTGRES_PASSWORD,
   {
-    host: process.env.POSTGRES_HOST || "localhost",
+    host: process.env.POSTGRES_HOST || "postgres",
     dialect: "postgres",
   }
 );
@@ -119,7 +119,7 @@ app.delete("/tasks/:id", authMiddleware, async (req, res) => {
 
 // ===== Connect to PostgreSQL & Start Server =====
 sequelize
-  .sync() // creates table if not exists
+  .sync({ alter: true }) // creates table if not exists
   .then(() => {
     console.log("Postgres connected & models synced");
     app.listen(process.env.PORT || 4001, () =>

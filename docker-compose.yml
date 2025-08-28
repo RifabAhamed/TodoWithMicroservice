@@ -4,7 +4,7 @@ services:
   # ==================== DATABASES ====================
   mongodb:
     image: mongo:latest
-    container_name: mongo_db
+    # container_name: mongo_db
     restart: always
     ports:
       - "27017:27017"
@@ -13,7 +13,7 @@ services:
 
   postgres:
     image: postgres:15
-    container_name: postgres_db
+    # container_name: postgres_db
     restart: always
     environment:
       POSTGRES_USER: postgres
@@ -27,29 +27,47 @@ services:
   # ==================== BACKEND SERVICES ====================
   user-service:
     build: ./user-service
-    container_name: user_service
+    # container_name: user_service
     restart: always
     env_file:
       - ./user-service/.env
-    ports:
-      - "4002:4002"
+    expose:
+      - "4002"
+    # ports:
+    #   - "4002:4002"
     depends_on:
       - mongodb
+    volumes:
+          - ./user-service:/app
+          - /app/node_modules
+    deploy:
+      replicas: 2   # scale user-service
+      restart_policy:
+       condition: on-failure
 
   task-service:
     build: ./task-service
-    container_name: task_service
+    # container_name: task_service
     restart: always
     env_file:
       - ./task-service/.env
-    ports:
-      - "4001:4001"
+    expose:
+      - "4001"
+    # ports:
+    #   - "4001:4001"
     depends_on:
       - postgres
+    volumes:
+      - ./task-service:/app
+      - /app/node_modules
+    deploy:
+      replicas: 3   # scale task-service
+      restart_policy:
+        condition: on-failure
 
   api-gateway:
     build: ./api-gateway
-    container_name: api_gateway
+    # container_name: api_gateway
     restart: always
     env_file:
       - ./api-gateway/.env
@@ -58,11 +76,14 @@ services:
     depends_on:
       - user-service
       - task-service
+    volumes:
+      - ./api-gateway:/app
+      - /app/node_modules
 
   # ==================== FRONTEND ====================
   frontend:
     build: ./frontend
-    container_name: frontend
+    # container_name: frontend
     restart: always
     env_file:
       - ./frontend/.env
@@ -70,7 +91,9 @@ services:
       - "3000:3000" # vite default
     depends_on:
       - api-gateway
-
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
 # ==================== VOLUMES ====================
 volumes:
   mongo_data:
