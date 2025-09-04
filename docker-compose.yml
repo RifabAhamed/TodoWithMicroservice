@@ -34,7 +34,7 @@ services:
       - ./user-service:/app
       - /app/node_modules
     ports:
-      - "4002"
+      - "4002:4002"
 
   task-service:
     build: ./task-service
